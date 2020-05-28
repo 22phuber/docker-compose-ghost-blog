@@ -1,0 +1,36 @@
+#!/usr/bin/env sh
+
+# Author: Patrick Huber (22phuber@gmail.com)
+# Date: 12.03.2020
+#
+# Desc:
+# Init let's encrypt files and generate initial certificate
+#
+set -e
+
+# VARIABLES
+primary_domain="${DOMAIN}"
+alternative_domain="${ALTERNATIVE_DOMAIN}"
+rsa_key_size=4096
+conf_path="/etc/letsencrypt"
+webroot="/var/www/certbot"
+email="${EMAIL}" # Add a valid email address
+# Set to "" (empty) to ignore setting
+# Set to "--staging" if you're testing your setup to avoid hitting request limits
+staging=""
+# Set to "" (empty) to ignore setting
+# Set to "--debug" to enable debugging
+debug="--debug"
+
+# MAIN
+# if "conf" folder doesn't exist in certbot data path
+if [ ! -d "${conf_path}/live/${primary_domain}" ]; then
+    echo "certbot: requesting certificate"
+    # Create cert
+    certbot certonly --webroot -w "${webroot}" \
+    --email "${email}" -d "${primary_domain},${alternative_domain}" \
+    --rsa-key-size "${rsa_key_size}" --agree-tos \
+    --expand ${debug} ${staging}
+fi
+
+exec "${@}"

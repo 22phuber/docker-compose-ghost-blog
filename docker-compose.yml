@@ -1,0 +1,87 @@
+version: "3.7"
+# See .env file for variables
+services:
+  mariadb:
+    image: ${MYSQL_DOCKER_IMAGE}
+    restart: unless-stopped
+    volumes:
+      - ./data/database:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+
+  ghost:
+    build:
+      context: ./ghost
+      args:
+        - GHOST_BUILD_DOCKER_IMAGE=${GHOST_DOCKER_IMAGE}
+        - GHOST_DISQUS_SHORTNAME=${GHOST_DISQUS_SHORTNAME}
+    restart: unless-stopped
+    links:
+      - mariadb
+    depends_on:
+      - mariadb
+    volumes:
+      - ./data/ghost:/var/lib/ghost/content
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      DISQUS_SHORTNAME: ${GHOST_DISQUS_SHORTNAME}
+      # Ghost specific config:
+      # https://ghost.org/docs/concepts/config/
+      url: https://${DOMAIN}
+      database__client: mysql
+      database__connection__host: mariadb
+      database__connection__user: ${GHOST_DATABASE_CONNECTION_USER}
+      database__connection__password: ${GHOST_DATABASE_CONNECTION_PASSWORD}
+      database__connection__database: ${GHOST_DATABASE_CONNECTION_DATABASE}
+      database__pool__min: ${GHOST_DATABASE_POOL_MIN}
+      database__pool__max: ${GHOST_DATABASE_POOL_MAX}
+      mail__transport: ${GHOST_MAIL_TRANSPORT}
+      mail__options__host: ${GHOST_MAIL_OPTIONS_HOST}
+      #mail__options__port: ${GHOST_MAIL_OPTIONS_PORT}          # <-- uncomment if needed
+      #mail__options__service: ${GHOST_MAIL_OPTIONS_SERVICE}    # <-- uncomment if needed
+      #mail__from: ${GHOST_MAIL_FROM}                           # <-- uncomment if needed
+      logging__rotation__enabled: ${GHOST_LOGGING_ROTATION_ENABLED}
+      imageOptimization: ${GHOST_IMAGEOPTIMIZATION}
+
+  nginx:
+    build:
+      context: ./nginx
+      args:
+        - NGINX_BUILD_DOCKER_IMAGE=${NGINX_DOCKER_IMAGE}
+        - SERVER_NAME=${DOMAIN}
+        - SERVER_ALTERNATIVE_NAME=www.${DOMAIN}
+    restart: unless-stopped
+    links:
+      - ghost
+    volumes:
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+    ports:
+      - "80:80"
+      - "443:443"
+    command:
+      - /bin/sh
+      - -c
+      - while :; do sleep 12h & wait $${!}; nginx -s reload; done
+
+  certbot:
+    build:
+      context: ./certbot
+      args:
+        - CERTBOT_BUILD_DOCKER_IMAGE=${CERTBOT_DOCKER_IMAGE}
+        - DOMAIN=${DOMAIN}
+        - ALTERNATIVE_DOMAIN=www.${DOMAIN}
+        - CERTBOT_EMAIL=${CERTBOT_EMAIL}
+    restart: unless-stopped
+    volumes:
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+    links:
+      - nginx
+    command:
+      - /bin/sh
+      - -c
+      - trap exit TERM; while :; do certbot renew; sleep 24h & wait $${!}; done;

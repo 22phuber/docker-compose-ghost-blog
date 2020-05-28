@@ -1,0 +1,50 @@
+#!/usr/bin/env sh
+
+# Author: Patrick Huber (22phuber@gmail.com)
+# Date: 12.03.2020
+#
+# Desc:
+# - downloads certbot ssl options and dhparams
+# - starts nginx and waits for https certificate
+# - move the vhost config for the domain and relaods nginx
+#
+set -e
+
+# VARIABLES
+log_file="/var/tmp/docker-entrypoint.log"
+exec >> "${log_file}" 2>&1
+
+primary_domain="${SERVER_NAME}"
+certififcate="/etc/letsencrypt/live/${primary_domain}/fullchain.pem"
+conf_path="/etc/letsencrypt"
+git_certbot_url="https://raw.githubusercontent.com/certbot/certbot/master"
+
+# download config files
+if [ ! -f "${conf_path}/options-ssl-nginx.conf" ] || [ ! -f "${conf_path}/ssl-dhparams.pem" ]; then
+    echo "NGiNX: Downloading ${conf_path}/options-ssl-nginx.conf and ${conf_path}/ssl-dhparams.pem"
+    wget -q "${git_certbot_url}/certbot-nginx/certbot_nginx/_internal/tls_configs/options-ssl-nginx.conf" -O "${conf_path}/options-ssl-nginx.conf"
+    wget -q "${git_certbot_url}/certbot/certbot/ssl-dhparams.pem" -O "${conf_path}/ssl-dhparams.pem"
+fi
+
+# MAIN
+# start nginx
+nginx -g "daemon off;" &
+
+# check if certs exist
+# wait and repeat until cert is present
+while [ ! -e "${certififcate}" ]; do
+    echo "Wait for certificate"
+    sleep 10
+done
+
+# move vhost if certificate exists
+if [ -e "${certififcate}" ]; then
+    echo "Certificate found. Moving vhost config"
+    mv "/etc/nginx/vhost.conf" "/etc/nginx/conf.d/vhost.conf"
+fi
+
+# test config and reload nginx
+echo "Certificate found. Moving vhost config"
+nginx -t && nginx -s reload && echo "reloaded nginx"
+
+exec "${@}"
