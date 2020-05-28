@@ -1,5 +1,7 @@
 # Docker compose starter kit with ghost blog, nginx, mariadb and certbot (SSL/TLS)
 
+:warning: Project is still **WIP**. Some features may not work properly yet.
+
 A [docker compose](https://docs.docker.com/compose/) starter kit for the [Ghost blogging platform](https://github.com/TryGhost/Ghost) features:
 - SSL/TLS (HTTPS) using [certbot](https://certbot.eff.org/) with automated renewal
 - [nginx](https://www.nginx.com/) as fast and reliable webserver
