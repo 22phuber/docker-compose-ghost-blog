@@ -18,3 +18,4 @@ COPY files/docker-entrypoint.sh "/usr/local/bin"
 RUN chmod a+x "/usr/local/bin/docker-entrypoint.sh" \
     && envsubst '${GHOST_DISQUS_SHORTNAME}' < "${GHOST_INSTALL}/disqus.template" > "${GHOST_INSTALL}/disqus.txt" \
     && rm -f "${GHOST_INSTALL}/disqus.template"
+
