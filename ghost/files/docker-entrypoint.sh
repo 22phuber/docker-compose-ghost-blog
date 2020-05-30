@@ -2,6 +2,9 @@
 set -e
 set -o pipefail
 
+# Read Snippet helper
+readSnippet(){ IFS=$'\n' read -r -d '' "${1}" || true; }
+
 # Enables Disqus comments when ${DISQUS_SHORTNAME} is set
 # for the casper theme
 # https://ghost.org/integrations/disqus/
@@ -11,10 +14,8 @@ function disqusCasperSetup ()
     declare -r disqusSnippetFile="${GHOST_INSTALL}/disqus.txt";
     local REPLACE;
     local CONTENT;
-    # clean up when function is "exited"
-    trap 'rm "${disqusSnippetFile}"' RETURN
     # Don't indent this heredoc section
-read -r -d '' REPLACE <<'EOF'
+readSnippet REPLACE <<'EOF'
             {{\!--
             <section class="post-full-comments">
                 If you want to embed comments, this is a good place to do it!
