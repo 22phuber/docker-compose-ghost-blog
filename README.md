@@ -31,3 +31,4 @@ The current setup supports a `domain` name and an `alternative domain` name with
 7. Run the docker compse setup in daemon mode in the backgroud: `docker-compose up -d`
 
 Check logs: `docker-compose logs -f`
+
